@@ -10,6 +10,7 @@ import GameOver from './GameOver';
 import MobileControls from './MobileControls';
 import CRTOverlay from './CRTOverlay';
 import GlitchTransition from './GlitchTransition';
+import { CornerFold, HalftonePatch, ZigzagDivider, SfxPop, ComicDots } from './ComicDecorations';
 
 interface GameCanvasProps {
   level: number;
@@ -67,7 +68,6 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Narrate key game state transitions
   useEffect(() => {
     if (gameState === 'gameover') {
       narratorRef.current.speak('The timeline collapses. Rewind and run it back.');
@@ -80,32 +80,17 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
     }
   }, [gameState, currentLevel]);
 
-  const handleStoryDismiss = useCallback(() => {
-    engineRef.current?.startPlaying();
-  }, []);
-
-  const handleQuizAnswer = useCallback((index: number) => {
-    engineRef.current?.answerQuiz(index);
-  }, []);
-
-  const handleQuizTimeout = useCallback(() => {
-    engineRef.current?.quizTimeout();
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    narratorRef.current.stop();
-    engineRef.current?.retry();
-  }, []);
+  const handleStoryDismiss = useCallback(() => { engineRef.current?.startPlaying(); }, []);
+  const handleQuizAnswer = useCallback((index: number) => { engineRef.current?.answerQuiz(index); }, []);
+  const handleQuizTimeout = useCallback(() => { engineRef.current?.quizTimeout(); }, []);
+  const handleRetry = useCallback(() => { narratorRef.current.stop(); engineRef.current?.retry(); }, []);
 
   const handleNextLevel = useCallback(() => {
     narratorRef.current.stop();
     if (!engineRef.current) return;
     const from = currentLevel;
     const to = currentLevel + 1;
-    if (to > 8) {
-      engineRef.current.nextLevel();
-      return;
-    }
+    if (to > 8) { engineRef.current.nextLevel(); return; }
     setTransitionFrom(from);
     setTransitionTo(to);
     setTransitioning(true);
@@ -122,9 +107,7 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
     else engineRef.current.input.releaseKey(key);
   }, []);
 
-  const handleGravityToggle = useCallback(() => {
-    engineRef.current?.toggleAntiGravity();
-  }, []);
+  const handleGravityToggle = useCallback(() => { engineRef.current?.toggleAntiGravity(); }, []);
 
   const missionCaption = gameState === 'story'
     ? 'A fresh decade is cracking open — step in when ready.'
@@ -142,16 +125,24 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
 
   return (
     <div className="relative mx-auto w-full max-w-[1040px] select-none">
-      <div className="comic-stage rounded-2xl p-3 sm:p-4">
+      <div className="comic-stage rounded-2xl p-3 sm:p-4 relative overflow-hidden">
+        {/* Background decorations */}
+        <HalftonePatch className="top-2 right-4 w-[80px] h-[80px] opacity-[0.04]" />
+
         {/* Header */}
         <div className="relative z-10 mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="comic-caption inline-flex rounded-sm">ISSUE {String(currentLevel).padStart(2, '0')}</div>
+            <div className="flex items-center gap-2">
+              <div className="comic-caption inline-flex rounded-sm">ISSUE {String(currentLevel).padStart(2, '0')}</div>
+              <SfxPop text="RUN!" className="text-xs" rotate={-10} />
+            </div>
             <div className="mt-2 font-orbitron text-2xl sm:text-3xl font-black text-primary drop-shadow-[0_0_18px_hsl(var(--primary))]">
               {currentName}
             </div>
+            <ComicDots count={3} className="mt-1" />
           </div>
-          <div className="comic-panel px-4 py-3 text-right">
+          <div className="comic-panel px-4 py-3 text-right relative">
+            <CornerFold corner="top-right" />
             <div className="text-[9px] tracking-[0.35em] text-muted-foreground font-orbitron">TIMELINE TARGET</div>
             <div className="font-orbitron text-xl sm:text-2xl font-black text-foreground">{currentYear}</div>
           </div>
@@ -195,9 +186,12 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
           )}
         </div>
 
+        <ZigzagDivider className="mt-3" />
+
         {/* Footer narration */}
         <div className="relative z-10 mt-3 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="comic-narration px-4 py-3 text-sm leading-relaxed text-foreground/80">
+          <div className="comic-narration px-4 py-3 text-sm leading-relaxed text-foreground/80 relative">
+            <CornerFold corner="top-right" />
             <span className="mb-1 block text-[10px] tracking-[0.35em] text-primary/70 font-orbitron">NARRATOR</span>
             {missionCaption}
           </div>
