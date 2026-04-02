@@ -2,14 +2,17 @@ import { useState } from 'react';
 import TitleScreen from '@/components/TitleScreen';
 import LevelSelect from '@/components/LevelSelect';
 import GameCanvas from '@/components/GameCanvas';
+import ComicIntro from '@/components/ComicIntro';
 
-type View = 'title' | 'levelselect' | 'game';
+type View = 'title' | 'comic' | 'levelselect' | 'game';
 
 const Index = () => {
   const [view, setView] = useState<View>('title');
   const [selectedLevel, setSelectedLevel] = useState(1);
 
-  const handlePlay = () => {
+  const handlePlay = () => setView('comic');
+
+  const handleComicComplete = () => {
     setSelectedLevel(1);
     setView('game');
   };
@@ -22,6 +25,10 @@ const Index = () => {
   };
 
   const handleBackToMenu = () => setView('title');
+
+  if (view === 'comic') {
+    return <ComicIntro onComplete={handleComicComplete} />;
+  }
 
   if (view === 'game') {
     return <GameCanvas key={selectedLevel} level={selectedLevel} onBackToMenu={handleBackToMenu} />;

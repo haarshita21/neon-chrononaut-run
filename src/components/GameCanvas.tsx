@@ -7,6 +7,8 @@ import QuizModal from './QuizModal';
 import StoryCard from './StoryCard';
 import GameOver from './GameOver';
 import MobileControls from './MobileControls';
+import CRTOverlay from './CRTOverlay';
+import GlitchTransition from './GlitchTransition';
 
 interface GameCanvasProps {
   level: number;
@@ -30,6 +32,9 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
   const [agActive, setAgActive] = useState(false);
   const [agAvailable, setAgAvailable] = useState(false);
   const [agProgress, setAgProgress] = useState(0);
+  const [transitioning, setTransitioning] = useState(false);
+  const [transitionFrom, setTransitionFrom] = useState(1);
+  const [transitionTo, setTransitionTo] = useState(2);
 
   const callbacks: GameCallbacks = {
     onStateChange: setGameState,
@@ -74,6 +79,20 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
   }, []);
 
   const handleNextLevel = useCallback(() => {
+    if (!engineRef.current) return;
+    const from = currentLevel;
+    const to = currentLevel + 1;
+    if (to > 8) {
+      engineRef.current.nextLevel();
+      return;
+    }
+    setTransitionFrom(from);
+    setTransitionTo(to);
+    setTransitioning(true);
+  }, [currentLevel]);
+
+  const handleTransitionComplete = useCallback(() => {
+    setTransitioning(false);
     engineRef.current?.nextLevel();
   }, []);
 
@@ -81,6 +100,16 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
     if (!engineRef.current) return;
     if (pressed) engineRef.current.input.pressKey(key);
     else engineRef.current.input.releaseKey(key);
+  }, []);
+
+  const handleGravityToggle = useCallback(() => {
+    if (!engineRef.current) return;
+    const ag = engineRef.current.antiGravity;
+    if (ag.canActivate()) {
+      ag.activate();
+      engineRef.current.player.gravityFlipped = true;
+      engineRef.current.audio.playPowerUp();
+    }
   }, []);
 
   return (
@@ -91,6 +120,9 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
         style={{ aspectRatio: `${CANVAS_WIDTH}/${CANVAS_HEIGHT}`, imageRendering: 'pixelated' }}
       />
 
+      {/* CRT Scanline overlay */}
+      <CRTOverlay />
+
       <HUD
         health={health}
         score={score}
@@ -99,6 +131,7 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
         antiGravityActive={agActive}
         antiGravityAvailable={agAvailable}
         antiGravityProgress={agProgress}
+        onGravityToggle={handleGravityToggle}
       />
 
       {gameState === 'story' && (
@@ -126,6 +159,15 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
           onRetry={handleRetry}
           onNextLevel={handleNextLevel}
           onMenu={onBackToMenu}
+        />
+      )}
+
+      {/* Glitch transition between levels */}
+      {transitioning && (
+        <GlitchTransition
+          fromLevel={transitionFrom}
+          toLevel={transitionTo}
+          onComplete={handleTransitionComplete}
         />
       )}
 
