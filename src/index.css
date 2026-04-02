@@ -325,8 +325,146 @@
   box-shadow: 4px 5px 0 hsl(var(--foreground) / 0.25), 0 0 30px hsl(var(--primary) / 0.45);
 }
 
+/* ── Starburst badge ── */
+.comic-starburst {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(
+    50% 0%, 63% 12%, 78% 2%, 82% 18%, 98% 20%, 90% 35%,
+    100% 50%, 90% 65%, 98% 80%, 82% 82%, 78% 98%, 63% 88%,
+    50% 100%, 37% 88%, 22% 98%, 18% 82%, 2% 80%, 10% 65%,
+    0% 50%, 10% 35%, 2% 20%, 18% 18%, 22% 2%, 37% 12%
+  );
+  animation: comic-burst 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Halftone patch ── */
+.comic-halftone {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  opacity: 0.06;
+  background-image: radial-gradient(circle, hsl(var(--primary)) 1.5px, transparent 1.5px);
+  background-size: 6px 6px;
+  border-radius: 50%;
+}
+
+/* ── Action lines (radial burst) ── */
+.comic-action-lines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg, hsl(var(--primary)) 2deg, transparent 4deg,
+    transparent 15deg, hsl(var(--primary)) 17deg, transparent 19deg,
+    transparent 30deg, hsl(var(--primary)) 32deg, transparent 34deg,
+    transparent 45deg, hsl(var(--primary)) 47deg, transparent 49deg,
+    transparent 60deg, hsl(var(--primary)) 62deg, transparent 64deg,
+    transparent 75deg, hsl(var(--primary)) 77deg, transparent 79deg,
+    transparent 90deg, hsl(var(--primary)) 92deg, transparent 94deg,
+    transparent 105deg, hsl(var(--primary)) 107deg, transparent 109deg,
+    transparent 120deg, hsl(var(--primary)) 122deg, transparent 124deg,
+    transparent 135deg, hsl(var(--primary)) 137deg, transparent 139deg,
+    transparent 150deg, hsl(var(--primary)) 152deg, transparent 154deg,
+    transparent 165deg, hsl(var(--primary)) 167deg, transparent 169deg,
+    transparent 180deg, hsl(var(--primary)) 182deg, transparent 184deg,
+    transparent 195deg, hsl(var(--primary)) 197deg, transparent 199deg,
+    transparent 210deg, hsl(var(--primary)) 212deg, transparent 214deg,
+    transparent 225deg, hsl(var(--primary)) 227deg, transparent 229deg,
+    transparent 240deg, hsl(var(--primary)) 242deg, transparent 244deg,
+    transparent 255deg, hsl(var(--primary)) 257deg, transparent 259deg,
+    transparent 270deg, hsl(var(--primary)) 272deg, transparent 274deg,
+    transparent 285deg, hsl(var(--primary)) 287deg, transparent 289deg,
+    transparent 300deg, hsl(var(--primary)) 302deg, transparent 304deg,
+    transparent 315deg, hsl(var(--primary)) 317deg, transparent 319deg,
+    transparent 330deg, hsl(var(--primary)) 332deg, transparent 334deg,
+    transparent 345deg, hsl(var(--primary)) 347deg, transparent 349deg,
+    transparent 360deg
+  );
+}
+
+/* ── SFX pop text ── */
+.comic-sfx-pop {
+  color: hsl(var(--neon-gold));
+  text-shadow:
+    0 0 10px hsl(var(--neon-gold)),
+    3px 3px 0 hsl(var(--background)),
+    -1px -1px 0 hsl(var(--background));
+  letter-spacing: 0.15em;
+  animation: comic-text-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Torn edge ── */
+.comic-torn-edge {
+  position: relative;
+  overflow: visible;
+}
+
+.comic-torn-edge--bottom::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 6px,
+    hsl(var(--border)) 6px,
+    hsl(var(--border)) 7px,
+    transparent 7px,
+    transparent 10px
+  );
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6'%3E%3Cpolygon points='0,0 5,6 10,0 15,6 20,0 25,6 30,0 35,6 40,0 45,6 50,0 55,6 60,0 65,6 70,0 75,6 80,0 85,6 90,0 95,6 100,0 100,6 0,6' fill='black'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+}
+
+.comic-torn-edge--top::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: hsl(var(--border));
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6'%3E%3Cpolygon points='0,6 5,0 10,6 15,0 20,6 25,0 30,6 35,0 40,6 45,0 50,6 55,0 60,6 65,0 70,6 75,0 80,6 85,0 90,6 95,0 100,6 100,0 0,0' fill='black'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+}
+
+/* ── Corner clip cut ── */
+.comic-corner-cut {
+  clip-path: polygon(
+    0 0, calc(100% - 20px) 0, 100% 20px,
+    100% 100%, 20px 100%, 0 calc(100% - 20px)
+  );
+}
+
+/* ── Diagonal stripe accent ── */
+.comic-stripe-accent {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0px,
+    transparent 4px,
+    hsl(var(--primary) / 0.06) 4px,
+    hsl(var(--primary) / 0.06) 5px
+  );
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  .animate-comic-panel,
+  .animate-comic-burst,
+  .animate-comic-text,
+  .animate-glitch-out,
+  .animate-glitch-in,
+  .animate-crt-flicker,
+  .comic-starburst {
+    animation: none !important;
+  }
+}
   .animate-comic-panel,
   .animate-comic-burst,
   .animate-comic-text,
