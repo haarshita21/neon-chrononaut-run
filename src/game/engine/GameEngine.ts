@@ -53,6 +53,9 @@ export class GameEngine {
   private jumpPressed = false;
   private antiGravityPressed = false;
   private distanceScore = 0;
+  private wasOnGround = false;
+  private lastMilestone = 0;
+  private prevAntiGravActive = false;
 
   constructor(canvas: HTMLCanvasElement, callbacks: GameCallbacks) {
     this.canvas = canvas;
@@ -74,9 +77,11 @@ export class GameEngine {
     this.player.reset(100, GROUND_Y - 48);
     this.cameraX = 0;
     this.distanceScore = 0;
+    this.lastMilestone = 0;
     this.quiz.reset();
     this.antiGravity.reset();
     this.scoreManager.reset();
+    this.prevAntiGravActive = false;
 
     this.enemies = this.levelDef.enemies.map(e => new Enemy(e));
     this.platforms = this.levelDef.platforms.map(p => new Platform(p));
@@ -94,6 +99,7 @@ export class GameEngine {
   startPlaying() {
     this.state = 'playing';
     this.callbacks.onStateChange('playing');
+    this.audio.playLevelStart();
     this.lastTime = performance.now();
     this.loop(this.lastTime);
   }
@@ -131,20 +137,26 @@ export class GameEngine {
     }
     this.jumpPressed = isJump;
 
-    // Anti-gravity
+    // Anti-gravity toggle (edge trigger)
     if (isAG && !this.antiGravityPressed) {
-      if (this.antiGravity.canActivate()) {
-        this.antiGravity.activate();
-        this.player.gravityFlipped = true;
-        this.audio.playPowerUp();
-      }
+      this.toggleAntiGravity();
     }
     this.antiGravityPressed = isAG;
 
-    this.antiGravity.update();
-    if (!this.antiGravity.active && this.player.gravityFlipped) {
-      this.player.gravityFlipped = false;
+    // Update anti-gravity system
+    this.antiGravity.update(dt);
+
+    // Sync player gravity state
+    this.player.gravityFlipped = this.antiGravity.active;
+
+    // Detect anti-gravity deactivation for SFX
+    if (this.prevAntiGravActive && !this.antiGravity.active) {
+      this.audio.playAntiGravityDeactivate();
+      // Reset float offsets
+      for (const e of this.enemies) e.setFloatOffset(0);
+      for (const o of this.obstacles) o.setFloatOffset(0);
     }
+    this.prevAntiGravActive = this.antiGravity.active;
 
     this.callbacks.onAntiGravityChange(
       this.antiGravity.active,
@@ -152,8 +164,15 @@ export class GameEngine {
       this.antiGravity.getCooldownProgress()
     );
 
-    // Auto-scroll camera + player
+    // Player movement (game continues during anti-gravity!)
+    this.wasOnGround = this.player.onGround;
     this.player.update(dt, isLeft, isRight, this.currentLevel);
+
+    // Landing SFX
+    if (!this.wasOnGround && this.player.onGround) {
+      this.audio.playLand();
+      this.particles.emit(this.player.x + 16, this.player.y + this.player.height, '#ffffff', 3, 2, 300);
+    }
 
     // Camera follows player
     const targetCameraX = this.player.x - 200;
@@ -162,12 +181,19 @@ export class GameEngine {
     // Keep player in bounds
     if (this.player.x < this.cameraX) this.player.x = this.cameraX;
 
-    // Distance score
+    // Distance score + milestones
     const newDist = Math.floor(this.player.x / 10);
     if (newDist > this.distanceScore) {
       this.scoreManager.addPoints(newDist - this.distanceScore);
       this.distanceScore = newDist;
       this.callbacks.onScoreChange(Math.floor(this.scoreManager.score));
+
+      // Milestone SFX every 500 distance points
+      const milestone = Math.floor(this.scoreManager.score / 500);
+      if (milestone > this.lastMilestone) {
+        this.lastMilestone = milestone;
+        this.audio.playMilestone();
+      }
     }
 
     // Update entities
@@ -175,6 +201,18 @@ export class GameEngine {
     for (const e of this.enemies) e.update(dt, this.cameraX);
     for (const pu of this.powerUps) pu.update(dt);
     this.particles.update(dt);
+
+    // Apply anti-gravity float offsets to enemies and obstacles
+    if (this.antiGravity.active) {
+      for (let i = 0; i < this.enemies.length; i++) {
+        const floatY = this.antiGravity.getFloatY(0, i) ;
+        this.enemies[i].setFloatOffset(floatY);
+      }
+      for (let i = 0; i < this.obstacles.length; i++) {
+        const floatY = this.antiGravity.getFloatY(0, i + this.enemies.length);
+        this.obstacles[i].setFloatOffset(floatY);
+      }
+    }
 
     // Platform collision
     this.player.onGround = false;
@@ -211,7 +249,7 @@ export class GameEngine {
       }
     }
 
-    // Enemy collision
+    // Enemy collision (uses float-adjusted bounds)
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (this.rectIntersect(pb, e.getBounds())) {
@@ -228,12 +266,12 @@ export class GameEngine {
       }
     }
 
-    // Obstacle collision
+    // Obstacle collision (uses float-adjusted bounds)
     for (const o of this.obstacles) {
       if (this.rectIntersect(pb, o.getBounds())) {
         if (this.player.takeDamage()) {
           this.audio.playHit();
-          this.particles.emit(o.x, o.y, o.color, 8);
+          this.particles.emit(o.x, o.getDrawY(), o.color, 8);
           this.callbacks.onHealthChange(this.player.health);
           if (this.player.health <= 0) {
             this.gameOver();
@@ -248,12 +286,21 @@ export class GameEngine {
       if (pu.collected) continue;
       if (this.rectIntersect(pb, pu.getBounds())) {
         pu.collected = true;
-        this.audio.playPowerUp();
         this.particles.emit(pu.x + 12, pu.y + 12, '#ffff00', 12);
         switch (pu.type) {
-          case 'shield': this.player.shielded = true; break;
-          case 'speed': this.player.speedBoosted = true; this.player.speedBoostEnd = Date.now() + 5000; break;
-          case 'antigravity': this.antiGravity.collect(); break;
+          case 'shield':
+            this.player.shielded = true;
+            this.audio.playShieldUp();
+            break;
+          case 'speed':
+            this.player.speedBoosted = true;
+            this.player.speedBoostEnd = Date.now() + 5000;
+            this.audio.playSpeedBoost();
+            break;
+          case 'antigravity':
+            this.antiGravity.collect();
+            this.audio.playPowerUp();
+            break;
         }
       }
     }
@@ -276,6 +323,18 @@ export class GameEngine {
       this.player.health = 0;
       this.callbacks.onHealthChange(0);
       this.gameOver();
+    }
+  }
+
+  // Public method for UI button toggle
+  toggleAntiGravity() {
+    if (this.antiGravity.active) {
+      // Deactivate early
+      this.antiGravity.deactivate();
+    } else if (this.antiGravity.canActivate()) {
+      this.antiGravity.activate();
+      this.audio.playAntiGravityActivate();
+      this.particles.emit(this.player.x + 16, this.player.y + 24, '#ff00ff', 15, 5);
     }
   }
 
@@ -346,8 +405,10 @@ export class GameEngine {
 
   private render() {
     if (!this.levelDef) return;
+    const agActive = this.antiGravity.active;
+
     this.renderer.clear(this.currentLevel);
-    this.renderer.drawGrid(this.cameraX, this.currentLevel);
+    this.renderer.drawGrid(this.cameraX, this.currentLevel, agActive);
 
     // Level end marker
     this.renderer.drawLevelEnd(this.levelDef.length, this.cameraX, this.currentLevel);
@@ -364,7 +425,7 @@ export class GameEngine {
     for (const o of this.obstacles) {
       const sx = o.x - this.cameraX;
       if (sx > -100 && sx < CANVAS_WIDTH + 100) {
-        this.renderer.drawObstacle(o, this.cameraX);
+        this.renderer.drawObstacle(o, this.cameraX, agActive);
       }
     }
 
@@ -372,7 +433,7 @@ export class GameEngine {
     for (const e of this.enemies) {
       const sx = e.x - this.cameraX;
       if (sx > -100 && sx < CANVAS_WIDTH + 100) {
-        this.renderer.drawEnemy(e, this.cameraX);
+        this.renderer.drawEnemy(e, this.cameraX, agActive);
       }
     }
 
@@ -389,6 +450,11 @@ export class GameEngine {
 
     // Player
     this.renderer.drawPlayer(this.player, this.cameraX, this.currentLevel);
+
+    // Anti-gravity overlay
+    if (agActive) {
+      this.renderer.drawAntiGravityOverlay(this.antiGravity.getCooldownProgress(), this.currentLevel);
+    }
   }
 
   private rectIntersect(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) {

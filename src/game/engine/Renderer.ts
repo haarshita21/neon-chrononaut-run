@@ -8,7 +8,6 @@ import { ParticleSystem } from '../systems/ParticleSystem';
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
-  private gridOffset = 0;
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
@@ -20,7 +19,7 @@ export class Renderer {
     this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
 
-  drawGrid(cameraX: number, levelNum: number) {
+  drawGrid(cameraX: number, levelNum: number, antiGravActive: boolean) {
     const colors = LEVEL_COLORS[levelNum] || LEVEL_COLORS[1];
     const ctx = this.ctx;
     ctx.strokeStyle = colors.primary + '15';
@@ -41,6 +40,13 @@ export class Renderer {
     ctx.shadowColor = colors.primary;
     ctx.shadowBlur = 10;
     ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(CANVAS_WIDTH, GROUND_Y); ctx.stroke();
+
+    // Ceiling line when anti-gravity active
+    if (antiGravActive) {
+      ctx.strokeStyle = colors.primary + '40';
+      ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(CANVAS_WIDTH, 10); ctx.stroke();
+    }
+
     ctx.shadowBlur = 0;
   }
 
@@ -64,6 +70,14 @@ export class Renderer {
     // Invincibility flash
     if (Date.now() < player.invincibleUntil && Math.floor(Date.now() / 100) % 2 === 0) {
       ctx.globalAlpha = 0.4;
+    }
+
+    // Flip rendering when gravity is flipped
+    ctx.save();
+    if (player.gravityFlipped) {
+      ctx.translate(sx + player.width / 2, sy + player.height / 2);
+      ctx.scale(1, -1);
+      ctx.translate(-(sx + player.width / 2), -(sy + player.height / 2));
     }
 
     // Body
@@ -96,32 +110,48 @@ export class Renderer {
       ctx.stroke();
     }
 
+    ctx.restore();
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
   }
 
-  drawEnemy(enemy: Enemy, cameraX: number) {
+  drawEnemy(enemy: Enemy, cameraX: number, antiGravActive: boolean) {
     if (!enemy.alive) return;
     const ctx = this.ctx;
     const sx = enemy.x - cameraX;
+    const drawY = enemy.getDrawY();
 
     ctx.fillStyle = enemy.color;
     ctx.shadowColor = enemy.color;
     ctx.shadowBlur = 10;
 
-    // Glitchy rectangle body with scanline effect
-    ctx.fillRect(sx, enemy.y, enemy.width, enemy.height);
-    
-    // Scanlines
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    for (let i = 0; i < enemy.height; i += 4) {
-      ctx.fillRect(sx, enemy.y + i, enemy.width, 1);
+    // If floating, add a subtle rotation wobble
+    if (antiGravActive && enemy.floatY !== 0) {
+      ctx.save();
+      ctx.translate(sx + enemy.width / 2, drawY + enemy.height / 2);
+      ctx.rotate(Math.sin(Date.now() * 0.003 + enemy.originX) * 0.15);
+      ctx.translate(-(enemy.width / 2), -(enemy.height / 2));
+      ctx.fillRect(0, 0, enemy.width, enemy.height);
+      // Scanlines
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      for (let i = 0; i < enemy.height; i += 4) {
+        ctx.fillRect(0, i, enemy.width, 1);
+      }
+      // Eyes
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(5 + enemy.animFrame, 8, 4, 4);
+      ctx.fillRect(enemy.width - 9 + enemy.animFrame, 8, 4, 4);
+      ctx.restore();
+    } else {
+      ctx.fillRect(sx, drawY, enemy.width, enemy.height);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      for (let i = 0; i < enemy.height; i += 4) {
+        ctx.fillRect(sx, drawY + i, enemy.width, 1);
+      }
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(sx + 5 + enemy.animFrame, drawY + 8, 4, 4);
+      ctx.fillRect(sx + enemy.width - 9 + enemy.animFrame, drawY + 8, 4, 4);
     }
-
-    // Eyes
-    ctx.fillStyle = '#ff0000';
-    ctx.fillRect(sx + 5 + enemy.animFrame, enemy.y + 8, 4, 4);
-    ctx.fillRect(sx + enemy.width - 9 + enemy.animFrame, enemy.y + 8, 4, 4);
 
     ctx.shadowBlur = 0;
   }
@@ -136,7 +166,6 @@ export class Renderer {
     ctx.shadowBlur = 8;
     ctx.fillRect(sx, platform.y, platform.width, platform.height);
     
-    // Top glow line
     ctx.fillStyle = colors.primary;
     ctx.globalAlpha = 0.8;
     ctx.fillRect(sx, platform.y, platform.width, 2);
@@ -144,21 +173,36 @@ export class Renderer {
     ctx.shadowBlur = 0;
   }
 
-  drawObstacle(obstacle: Obstacle, cameraX: number) {
+  drawObstacle(obstacle: Obstacle, cameraX: number, antiGravActive: boolean) {
     const ctx = this.ctx;
     const sx = obstacle.x - cameraX;
+    const drawY = obstacle.getDrawY();
 
     ctx.fillStyle = obstacle.color;
     ctx.shadowColor = obstacle.color;
     ctx.shadowBlur = 8;
 
-    // Spike triangle
-    ctx.beginPath();
-    ctx.moveTo(sx, obstacle.y + obstacle.height);
-    ctx.lineTo(sx + obstacle.width / 2, obstacle.y);
-    ctx.lineTo(sx + obstacle.width, obstacle.y + obstacle.height);
-    ctx.closePath();
-    ctx.fill();
+    if (antiGravActive && obstacle.floatY !== 0) {
+      // Floating + rotating obstacle
+      ctx.save();
+      ctx.translate(sx + obstacle.width / 2, drawY + obstacle.height / 2);
+      ctx.rotate(Math.sin(Date.now() * 0.002 + obstacle.x * 0.1) * 0.3);
+      ctx.translate(-(obstacle.width / 2), -(obstacle.height / 2));
+      ctx.beginPath();
+      ctx.moveTo(0, obstacle.height);
+      ctx.lineTo(obstacle.width / 2, 0);
+      ctx.lineTo(obstacle.width, obstacle.height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(sx, drawY + obstacle.height);
+      ctx.lineTo(sx + obstacle.width / 2, drawY);
+      ctx.lineTo(sx + obstacle.width, drawY + obstacle.height);
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.shadowBlur = 0;
   }
 
@@ -179,7 +223,6 @@ export class Renderer {
     ctx.shadowBlur = 15;
 
     if (powerUp.type === 'antigravity') {
-      // Rotating diamond
       ctx.save();
       ctx.translate(sx + powerUp.width / 2, powerUp.y + powerUp.height / 2);
       ctx.rotate(powerUp.bobTimer);
@@ -189,12 +232,36 @@ export class Renderer {
       ctx.beginPath();
       ctx.arc(sx + powerUp.width / 2, powerUp.y + powerUp.height / 2, 10, 0, Math.PI * 2);
       ctx.fill();
-      // Icon
       ctx.fillStyle = '#000';
       ctx.font = '10px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(powerUp.type === 'shield' ? 'S' : '⚡', sx + powerUp.width / 2, powerUp.y + powerUp.height / 2 + 3);
     }
+    ctx.shadowBlur = 0;
+  }
+
+  // Anti-gravity visual effect overlay
+  drawAntiGravityOverlay(progress: number, levelNum: number) {
+    if (progress <= 0) return;
+    const ctx = this.ctx;
+    const colors = LEVEL_COLORS[levelNum] || LEVEL_COLORS[1];
+    
+    // Pulsing border glow
+    const pulse = Math.sin(Date.now() * 0.005) * 0.3 + 0.7;
+    ctx.strokeStyle = colors.primary;
+    ctx.shadowColor = colors.primary;
+    ctx.shadowBlur = 20 * pulse;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, CANVAS_WIDTH - 4, CANVAS_HEIGHT - 4);
+
+    // Floating particles effect
+    ctx.fillStyle = colors.primary + '30';
+    for (let i = 0; i < 8; i++) {
+      const px = (Date.now() * 0.02 + i * 120) % CANVAS_WIDTH;
+      const py = CANVAS_HEIGHT - ((Date.now() * 0.03 + i * 70) % CANVAS_HEIGHT);
+      ctx.fillRect(px, py, 2, 2);
+    }
+
     ctx.shadowBlur = 0;
   }
 
@@ -207,7 +274,6 @@ export class Renderer {
     const colors = LEVEL_COLORS[levelNum];
     const sx = endX - cameraX;
 
-    // Finish line
     ctx.strokeStyle = colors.primary;
     ctx.shadowColor = colors.primary;
     ctx.shadowBlur = 20;
