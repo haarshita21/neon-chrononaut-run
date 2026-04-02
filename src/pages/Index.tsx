@@ -1,16 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import TitleScreen from '@/components/TitleScreen';
+import LevelSelect from '@/components/LevelSelect';
+import GameCanvas from '@/components/GameCanvas';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
-  return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
-  );
+type View = 'title' | 'levelselect' | 'game';
+
+const Index = () => {
+  const [view, setView] = useState<View>('title');
+  const [selectedLevel, setSelectedLevel] = useState(1);
+
+  const handlePlay = () => {
+    setSelectedLevel(1);
+    setView('game');
+  };
+
+  const handleLevelSelect = () => setView('levelselect');
+
+  const handleSelectLevel = (level: number) => {
+    setSelectedLevel(level);
+    setView('game');
+  };
+
+  const handleBackToMenu = () => setView('title');
+
+  if (view === 'game') {
+    return <GameCanvas key={selectedLevel} level={selectedLevel} onBackToMenu={handleBackToMenu} />;
+  }
+
+  if (view === 'levelselect') {
+    return <LevelSelect onSelect={handleSelectLevel} onBack={handleBackToMenu} />;
+  }
+
+  return <TitleScreen onPlay={handlePlay} onLevelSelect={handleLevelSelect} />;
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
