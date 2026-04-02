@@ -294,6 +294,37 @@
   opacity: 0.55;
 }
 
+/* ── Comic speed lines for runner panel ── */
+.comic-speed-lines {
+  background:
+    repeating-linear-gradient(
+      -15deg,
+      transparent 0px,
+      transparent 8px,
+      hsl(var(--primary) / 0.08) 8px,
+      hsl(var(--primary) / 0.08) 9px
+    );
+  animation: speed-shift 0.8s linear infinite;
+}
+
+@keyframes speed-shift {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+/* ── Primary button glow variant ── */
+.comic-button--primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 3px 3px 0 hsl(var(--foreground) / 0.2), 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+.comic-button--primary:hover {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 4px 5px 0 hsl(var(--foreground) / 0.25), 0 0 30px hsl(var(--primary) / 0.45);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-comic-panel,
