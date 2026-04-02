@@ -70,3 +70,145 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* CRT Scanline Overlay */
+.crt-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.crt-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* Glitch transition */
+@keyframes glitch-transition {
+  0% { clip-path: inset(0 0 100% 0); opacity: 1; }
+  10% { clip-path: inset(20% 0 60% 0); transform: translateX(5px); }
+  20% { clip-path: inset(40% 0 30% 0); transform: translateX(-8px); }
+  30% { clip-path: inset(60% 0 10% 0); transform: translateX(3px); }
+  40% { clip-path: inset(10% 0 70% 0); transform: translateX(-5px); }
+  50% { clip-path: inset(0 0 0 0); transform: translateX(0); opacity: 0.8; }
+  60% { clip-path: inset(80% 0 5% 0); transform: translateX(10px); }
+  70% { clip-path: inset(5% 0 85% 0); transform: translateX(-3px); }
+  80% { clip-path: inset(0 0 0 0); transform: translateX(0); opacity: 0.5; }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0); opacity: 0; }
+}
+
+@keyframes glitch-in {
+  0% { clip-path: inset(0 0 0 0); opacity: 0; }
+  10% { clip-path: inset(30% 0 50% 0); transform: translateX(-6px); opacity: 0.5; }
+  20% { clip-path: inset(50% 0 20% 0); transform: translateX(8px); }
+  30% { clip-path: inset(10% 0 80% 0); transform: translateX(-3px); }
+  50% { clip-path: inset(0 0 0 0); transform: translateX(0); opacity: 0.8; }
+  70% { clip-path: inset(70% 0 10% 0); transform: translateX(5px); }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0); opacity: 1; }
+}
+
+@keyframes crt-flicker {
+  0%, 100% { opacity: 0.97; }
+  50% { opacity: 1; }
+}
+
+@keyframes year-counter {
+  0% { transform: translateY(20px); opacity: 0; }
+  20% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+
+@keyframes comic-panel-in {
+  0% { transform: scale(0.3) rotate(-5deg); opacity: 0; }
+  50% { transform: scale(1.05) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes comic-burst {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes comic-text-pop {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.animate-glitch-out {
+  animation: glitch-transition 0.8s ease-in-out forwards;
+}
+
+.animate-glitch-in {
+  animation: glitch-in 0.6s ease-out forwards;
+}
+
+.animate-crt-flicker {
+  animation: crt-flicker 0.1s infinite;
+}
+
+.animate-year-counter {
+  animation: year-counter 1.5s ease-in-out forwards;
+}
+
+.animate-comic-panel {
+  animation: comic-panel-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-comic-burst {
+  animation: comic-burst 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-comic-text {
+  animation: comic-text-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Comic panel borders */
+.comic-panel {
+  border: 3px solid hsl(var(--foreground));
+  box-shadow: 4px 4px 0 hsl(var(--foreground) / 0.3);
+  background: hsl(var(--card));
+}
+
+.comic-caption {
+  background: hsl(var(--neon-gold));
+  color: hsl(var(--primary-foreground));
+  padding: 4px 12px;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+/* Gravity button glow */
+.gravity-btn {
+  transition: all 0.2s;
+}
+
+.gravity-btn.active {
+  box-shadow: 0 0 20px hsl(var(--secondary)), 0 0 40px hsl(var(--secondary) / 0.4);
+}
+
+.gravity-btn.available {
+  box-shadow: 0 0 10px hsl(var(--secondary) / 0.5);
+}
+
+.gravity-btn.cooldown {
+  opacity: 0.4;
+}
