@@ -4,13 +4,18 @@ import comicPanel2 from '@/assets/comic-panel-2.jpg';
 import comicPanel3 from '@/assets/comic-panel-3.jpg';
 import comicPanel4 from '@/assets/comic-panel-4.jpg';
 import { AudioManager } from '@/game/engine/AudioManager';
+import { getNarrator } from '@/game/engine/Narrator';
+import { Volume2, VolumeX } from 'lucide-react';
 
 interface ComicPanelData {
   image: string;
+  alt: string;
   caption?: string;
+  pageNum: string;
   speechBubble?: { text: string; position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; speaker?: string };
   thought?: { text: string; position: 'top-left' | 'top-right' };
   narration?: string;
+  voiceover: string;
   sfx?: string;
   delay: number;
   span?: 'wide' | 'tall' | 'normal';
@@ -20,33 +25,46 @@ interface ComicPanelData {
 const PANELS: ComicPanelData[] = [
   {
     image: comicPanel1,
+    alt: 'Scientists standing before the ENIAC computer with electrical sparks flying',
     caption: '1946 — THE UNIVERSITY OF PENNSYLVANIA',
+    pageNum: 'I',
     speechBubble: { text: "It's alive! 30 tons of vacuum tubes... and it COMPUTES!", position: 'top-right', speaker: 'DR. ECKERT' },
     narration: 'In a world where calculations took weeks by hand, two engineers dared to dream bigger...',
+    voiceover: 'Nineteen forty-six. The University of Pennsylvania. In a world where calculations took weeks by hand, two engineers dared to dream bigger. Thirty tons of vacuum tubes hummed to life, and ENIAC was born.',
     sfx: 'BZZZZT!',
     delay: 0,
     span: 'wide',
   },
   {
     image: comicPanel2,
+    alt: 'Engineers shaking hands as they found the IEEE Computer Society',
     caption: 'THE BIRTH OF A SOCIETY',
-    speechBubble: { text: "Together, we'll shape the future of computing!", position: 'top-left' },
+    pageNum: 'II',
+    speechBubble: { text: "Together, we'll wire the future of computing!", position: 'top-left' },
     thought: { text: 'IEEE Computer Society — Est. 1946', position: 'top-right' },
+    voiceover: 'That same year, visionaries gathered around a table and forged the IEEE Computer Society. A pledge to push computing forward, decade after decade.',
     delay: 800,
     span: 'normal',
   },
   {
     image: comicPanel3,
+    alt: 'Montage of computing evolution from transistors to AI neural networks',
     caption: '80 YEARS OF INNOVATION',
-    narration: 'From transistors to the cloud... from ARPANET to artificial intelligence... eight decades of breakthroughs.',
+    pageNum: 'III',
+    narration: 'From transistors to the cloud... from ARPANET to artificial intelligence... eight decades of breakthroughs that rewired the planet.',
+    voiceover: 'From transistors to the cloud. From ARPANET to artificial intelligence. Eight decades of breakthroughs that rewired the planet.',
     delay: 1600,
     span: 'normal',
   },
   {
     image: comicPanel4,
+    alt: 'A neon cyberpunk runner sprinting through a digital circuit board cityscape',
+    caption: 'THE RUN BEGINS',
+    pageNum: 'IV',
     speechBubble: { text: "Time to run through history!", position: 'top-left', speaker: 'CODE RUNNER' },
     sfx: 'WHOOOOSH!',
     narration: 'One runner. Eight eras. The mission begins NOW.',
+    voiceover: 'One runner. Eight eras. The mission begins now!',
     delay: 2400,
     span: 'wide',
     isRunner: true,
@@ -60,11 +78,16 @@ interface ComicIntroProps {
 export default function ComicIntro({ onComplete }: ComicIntroProps) {
   const [visiblePanels, setVisiblePanels] = useState(0);
   const [showSkip, setShowSkip] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const audioRef = useRef<AudioManager | null>(null);
+  const narratorRef = useRef(getNarrator());
 
   useEffect(() => {
     audioRef.current = new AudioManager();
-    return () => { audioRef.current?.destroy(); };
+    return () => {
+      audioRef.current?.destroy();
+      narratorRef.current.stop();
+    };
   }, []);
 
   useEffect(() => {
@@ -72,35 +95,50 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
     PANELS.forEach((panel, i) => {
       timers.push(setTimeout(() => {
         setVisiblePanels(i + 1);
-        // Play SFX when panel appears
         if (panel.isRunner) {
           audioRef.current?.playComicWhoosh();
         } else {
           audioRef.current?.playComicBlip(i);
         }
+        // Narrate each panel
+        if (voiceEnabled) {
+          narratorRef.current.queueSpeak(panel.voiceover);
+        }
       }, panel.delay));
     });
     timers.push(setTimeout(() => setShowSkip(true), 400));
     return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const allVisible = visiblePanels >= PANELS.length;
 
   const handleBegin = () => {
+    narratorRef.current.stop();
     audioRef.current?.playComicBegin();
     setTimeout(onComplete, 400);
   };
 
+  const handleSkip = () => {
+    narratorRef.current.stop();
+    onComplete();
+  };
+
+  const toggleVoice = () => {
+    const enabled = narratorRef.current.toggle();
+    setVoiceEnabled(enabled);
+  };
+
   return (
     <div className="min-h-screen comic-stage flex flex-col items-center justify-center p-3 sm:p-6 relative overflow-hidden">
-
-      {/* Comic page title */}
-      <div className={`mb-3 text-center ${visiblePanels > 0 ? 'animate-fade-in' : 'opacity-0'}`}>
+      {/* Masthead */}
+      <div className={`mb-4 text-center ${visiblePanels > 0 ? 'animate-fade-in' : 'opacity-0'}`}>
+        <div className="comic-caption inline-flex rounded-sm mb-2">ISSUE #80 · ORIGIN STORY</div>
         <div className="font-orbitron text-[10px] tracking-[0.4em] text-muted-foreground">IEEE COMPUTER SOCIETY PRESENTS</div>
       </div>
 
-      {/* Comic grid — asymmetric layout */}
-      <div className="relative z-10 max-w-2xl w-full grid grid-cols-2 gap-2 sm:gap-3">
+      {/* Comic grid */}
+      <div className="relative z-10 max-w-3xl w-full grid grid-cols-2 gap-2 sm:gap-3">
         {PANELS.map((panel, i) => (
           <div
             key={i}
@@ -109,22 +147,32 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
             } ${i < visiblePanels ? 'animate-comic-panel' : 'opacity-0'}`}
             style={{ animationDelay: `${i * 0.05}s` }}
           >
-            {/* Panel frame */}
-            <div className="comic-panel rounded overflow-hidden relative" style={{
+            <div className="comic-panel rounded overflow-hidden relative group" style={{
               aspectRatio: panel.span === 'wide' ? '2.2/1' : '1.15/1',
             }}>
-              {/* Illustration */}
+              {/* Page number watermark */}
+              <div className="absolute top-2 right-3 font-orbitron text-[40px] sm:text-[56px] font-black text-foreground/[0.04] leading-none z-0 select-none pointer-events-none">
+                {panel.pageNum}
+              </div>
+
               <img
                 src={panel.image}
-                alt=""
+                alt={panel.alt}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading={i === 0 ? undefined : 'lazy'}
-                width={640}
-                height={512}
+                width={panel.span === 'wide' ? 1024 : 640}
+                height={panel.span === 'wide' ? 512 : 640}
               />
 
-              {/* Dark overlay for readability */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0" style={{
+                background: 'linear-gradient(to top, hsl(var(--background) / 0.7), transparent 40%, hsl(var(--background) / 0.35))'
+              }} />
+
+              {/* Action speed lines for runner panel */}
+              {panel.isRunner && i < visiblePanels && (
+                <div className="absolute inset-0 comic-speed-lines pointer-events-none" />
+              )}
 
               {/* Caption banner */}
               {panel.caption && (
@@ -154,17 +202,18 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
                 />
               )}
 
-              {/* SFX text */}
+              {/* SFX */}
               {panel.sfx && i < visiblePanels && (
                 <div
-                  className="absolute animate-comic-text font-orbitron font-black text-lg sm:text-2xl"
+                  className="absolute animate-comic-text font-orbitron font-black text-xl sm:text-3xl"
                   style={{
-                    bottom: '12%',
-                    right: '8%',
+                    bottom: '14%',
+                    right: '6%',
                     color: 'hsl(var(--neon-gold))',
-                    textShadow: '0 0 10px hsl(var(--neon-gold)), 2px 2px 0 hsl(var(--background))',
+                    textShadow: '0 0 12px hsl(var(--neon-gold)), 3px 3px 0 hsl(var(--background))',
                     animationDelay: '0.5s',
-                    transform: 'rotate(-8deg)',
+                    transform: 'rotate(-8deg) scale(1.1)',
+                    letterSpacing: '0.1em',
                   }}
                 >
                   {panel.sfx}
@@ -177,7 +226,8 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
                   className="absolute bottom-2 left-2 right-2 animate-comic-text"
                   style={{ animationDelay: '0.3s' }}
                 >
-                  <div className="bg-background/90 border border-border rounded px-3 py-1.5 text-[10px] sm:text-xs font-mono text-foreground/80 leading-relaxed italic">
+                  <div className="comic-narration px-3 py-2 text-[10px] sm:text-xs leading-relaxed">
+                    <span className="not-italic text-[8px] tracking-[0.3em] text-primary/60 block mb-0.5">NARRATOR</span>
                     {panel.narration}
                   </div>
                 </div>
@@ -187,37 +237,55 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
         ))}
       </div>
 
+      {/* Progress dots */}
+      <div className="mt-4 flex gap-2 items-center">
+        {PANELS.map((_, i) => (
+          <div
+            key={i}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              i < visiblePanels ? 'bg-primary scale-100' : 'bg-muted scale-75'
+            }`}
+          />
+        ))}
+      </div>
+
       {/* Action button */}
       {allVisible && (
         <div className="mt-5 animate-comic-burst">
           <button
             onClick={handleBegin}
-            className="font-orbitron text-sm px-12 py-3.5 bg-primary text-primary-foreground rounded-sm font-bold hover:scale-105 transition-transform relative"
-            style={{
-              boxShadow: '4px 4px 0 hsl(var(--foreground) / 0.3), 0 0 25px hsl(var(--primary) / 0.4)',
-            }}
+            className="comic-button font-orbitron text-sm px-12 py-3.5 font-bold"
           >
             ▶ BEGIN MISSION
           </button>
         </div>
       )}
 
+      {/* Voice toggle */}
+      <button
+        onClick={toggleVoice}
+        className="absolute top-4 right-4 p-2 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors z-20 bg-card/80 backdrop-blur-sm"
+        aria-label={voiceEnabled ? 'Mute narrator' : 'Enable narrator'}
+      >
+        {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+      </button>
+
       {/* Skip */}
       {showSkip && (
         <button
-          onClick={onComplete}
-          className="absolute bottom-4 right-4 font-orbitron text-[10px] text-muted-foreground hover:text-foreground transition-colors z-20"
+          onClick={handleSkip}
+          className="absolute bottom-4 right-4 comic-button comic-button--ghost font-orbitron text-[10px] px-3 py-1.5 z-20"
         >
           SKIP →
         </button>
       )}
 
-      <div className="crt-overlay" />
+      <div className="crt-overlay rounded-none" />
     </div>
   );
 }
 
-/* Speech Bubble Component */
+/* Speech Bubble */
 function SpeechBubble({ text, position, speaker, delay = 0 }: {
   text: string;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -238,7 +306,7 @@ function SpeechBubble({ text, position, speaker, delay = 0 }: {
       className={`absolute ${posClasses[position]} max-w-[55%] animate-comic-text z-10`}
       style={{ animationDelay: `${delay}s` }}
     >
-      <div className="relative bg-foreground text-background rounded-2xl px-3 py-2 text-[9px] sm:text-[11px] font-bold leading-snug">
+      <div className="relative bg-foreground text-background rounded-2xl px-3 py-2 text-[9px] sm:text-[11px] font-bold leading-snug shadow-lg">
         {speaker && (
           <span className="block text-[7px] sm:text-[8px] font-orbitron text-primary-foreground/60 mb-0.5 tracking-wider">
             {speaker}:
@@ -257,7 +325,7 @@ function SpeechBubble({ text, position, speaker, delay = 0 }: {
   );
 }
 
-/* Thought Bubble Component */
+/* Thought Bubble */
 function ThoughtBubble({ text, position, delay = 0 }: {
   text: string;
   position: 'top-left' | 'top-right';
