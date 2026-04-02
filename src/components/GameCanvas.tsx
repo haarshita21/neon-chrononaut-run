@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { GameEngine, GameState, GameCallbacks } from '@/game/engine/GameEngine';
 import { QuizQuestion } from '@/game/systems/QuizSystem';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/game/constants';
+import { getNarrator } from '@/game/engine/Narrator';
 import HUD from './HUD';
 import QuizModal from './QuizModal';
 import StoryCard from './StoryCard';
@@ -18,6 +19,7 @@ interface GameCanvasProps {
 export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const narratorRef = useRef(getNarrator());
 
   const [gameState, setGameState] = useState<GameState>('story');
   const [health, setHealth] = useState(5);
@@ -58,9 +60,25 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
     engine.startLevel(level);
     engine.startLoop();
 
-    return () => { engine.destroy(); };
+    return () => {
+      engine.destroy();
+      narratorRef.current.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Narrate key game state transitions
+  useEffect(() => {
+    if (gameState === 'gameover') {
+      narratorRef.current.speak('The timeline collapses. Rewind and run it back.');
+    } else if (gameState === 'levelcomplete') {
+      narratorRef.current.speak(`Era cleared. Issue ${currentLevel} archived. The next decade awaits.`);
+    } else if (gameState === 'victory') {
+      narratorRef.current.speak('All eight eras conquered. IEEE Computer Society celebrates eighty years — and you survived every one.');
+    } else if (gameState === 'quiz') {
+      narratorRef.current.speak('Pop quiz. History is watching.');
+    }
+  }, [gameState, currentLevel]);
 
   const handleStoryDismiss = useCallback(() => {
     engineRef.current?.startPlaying();
@@ -75,10 +93,12 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
   }, []);
 
   const handleRetry = useCallback(() => {
+    narratorRef.current.stop();
     engineRef.current?.retry();
   }, []);
 
   const handleNextLevel = useCallback(() => {
+    narratorRef.current.stop();
     if (!engineRef.current) return;
     const from = currentLevel;
     const to = currentLevel + 1;
