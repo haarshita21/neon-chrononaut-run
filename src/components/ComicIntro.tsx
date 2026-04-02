@@ -92,12 +92,7 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-3 sm:p-6 relative overflow-hidden">
-      {/* Halftone dot pattern background */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)',
-        backgroundSize: '6px 6px',
-      }} />
+    <div className="min-h-screen comic-stage flex flex-col items-center justify-center p-3 sm:p-6 relative overflow-hidden">
 
       {/* Comic page title */}
       <div className={`mb-3 text-center ${visiblePanels > 0 ? 'animate-fade-in' : 'opacity-0'}`}>

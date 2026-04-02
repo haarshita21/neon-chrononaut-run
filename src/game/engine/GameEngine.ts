@@ -94,6 +94,11 @@ export class GameEngine {
     this.callbacks.onHealthChange(this.player.health);
     this.callbacks.onScoreChange(0);
     this.callbacks.onLevelChange(level, this.levelDef.year, this.levelDef.name);
+    this.callbacks.onAntiGravityChange(
+      this.antiGravity.active,
+      this.antiGravity.available,
+      this.antiGravity.getCooldownProgress()
+    );
   }
 
   startPlaying() {
@@ -300,6 +305,11 @@ export class GameEngine {
           case 'antigravity':
             this.antiGravity.collect();
             this.audio.playPowerUp();
+            this.callbacks.onAntiGravityChange(
+              this.antiGravity.active,
+              this.antiGravity.available,
+              this.antiGravity.getCooldownProgress()
+            );
             break;
         }
       }

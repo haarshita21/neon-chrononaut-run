@@ -4,8 +4,8 @@ export class AntiGravitySystem {
   active = false;
   activatedAt = 0;
   cooldownUntil = 0;
-  available = false; // collected the button
-  floatOffset = 0; // sinusoidal float for enemies/obstacles
+  available = true; // start each level with one charge
+  floatOffset = 0;
 
   canActivate(): boolean {
     return this.available && !this.active && Date.now() > this.cooldownUntil;
@@ -19,7 +19,6 @@ export class AntiGravitySystem {
     return true;
   }
 
-  // Toggle: can also deactivate early
   toggle(): boolean {
     if (this.active) {
       this.deactivate();
@@ -35,25 +34,24 @@ export class AntiGravitySystem {
   }
 
   collect() {
+    // Collecting a pickup recharges and clears any remaining cooldown
     this.available = true;
+    this.cooldownUntil = 0;
   }
 
   update(dt: number) {
     if (this.active) {
-      // Float offset oscillates for floating entities
       this.floatOffset += dt * 0.004;
       if (Date.now() - this.activatedAt > ANTIGRAVITY_DURATION) {
         this.deactivate();
       }
     } else {
-      // Dampen float offset back to 0
       this.floatOffset *= 0.95;
     }
   }
 
   getFloatY(baseY: number, entityIndex: number): number {
     if (!this.active) return baseY;
-    // Each entity floats at different phase, drifting upward with wobble
     const phase = entityIndex * 1.7;
     const drift = Math.sin(this.floatOffset + phase) * 25;
     const lift = -30 - Math.sin(this.floatOffset * 0.5 + phase * 0.3) * 15;
@@ -72,7 +70,8 @@ export class AntiGravitySystem {
 
   reset() {
     this.active = false;
-    this.available = false;
+    this.available = true;
+    this.activatedAt = 0;
     this.cooldownUntil = 0;
     this.floatOffset = 0;
   }

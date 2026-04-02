@@ -106,64 +106,90 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
     engineRef.current?.toggleAntiGravity();
   }, []);
 
+  const missionCaption = gameState === 'story'
+    ? 'A fresh decade is cracking open — step in when ready.'
+    : gameState === 'quiz'
+    ? 'History bites back with a pop quiz. Pick fast.'
+    : gameState === 'levelcomplete'
+    ? 'The page turns. Another era is down.'
+    : gameState === 'victory'
+    ? 'Eight eras cleared. Anniversary legend status achieved.'
+    : agActive
+    ? 'Gravity is inverted. Keep running while the world drifts.'
+    : agAvailable
+    ? 'The anti-gravity switch is hot — tap it or press G.'
+    : 'Stay low, grab boosts, and outrun the wreckage of every era.';
+
   return (
-    <div className="relative w-full max-w-[960px] mx-auto select-none">
-      <canvas
-        ref={canvasRef}
-        className="w-full rounded-lg border border-border"
-        style={{ aspectRatio: `${CANVAS_WIDTH}/${CANVAS_HEIGHT}`, imageRendering: 'pixelated' }}
-      />
+    <div className="relative mx-auto w-full max-w-[1040px] select-none">
+      <div className="comic-stage rounded-2xl p-3 sm:p-4">
+        {/* Header */}
+        <div className="relative z-10 mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="comic-caption inline-flex rounded-sm">ISSUE {String(currentLevel).padStart(2, '0')}</div>
+            <div className="mt-2 font-orbitron text-2xl sm:text-3xl font-black text-primary drop-shadow-[0_0_18px_hsl(var(--primary))]">
+              {currentName}
+            </div>
+          </div>
+          <div className="comic-panel px-4 py-3 text-right">
+            <div className="text-[9px] tracking-[0.35em] text-muted-foreground font-orbitron">TIMELINE TARGET</div>
+            <div className="font-orbitron text-xl sm:text-2xl font-black text-foreground">{currentYear}</div>
+          </div>
+        </div>
 
-      <CRTOverlay />
+        {/* Canvas frame */}
+        <div className="relative comic-panel overflow-hidden rounded-xl p-2 sm:p-3">
+          <canvas
+            ref={canvasRef}
+            className="block w-full rounded-lg border border-border bg-background"
+            style={{ aspectRatio: `${CANVAS_WIDTH}/${CANVAS_HEIGHT}`, imageRendering: 'pixelated' }}
+          />
 
-      <HUD
-        health={health}
-        score={score}
-        year={currentYear}
-        levelName={currentName}
-        antiGravityActive={agActive}
-        antiGravityAvailable={agAvailable}
-        antiGravityProgress={agProgress}
-        onGravityToggle={handleGravityToggle}
-      />
+          <CRTOverlay />
 
-      {gameState === 'story' && (
-        <StoryCard
-          text={storyText}
-          year={storyYear}
-          name={storyName}
-          onDismiss={handleStoryDismiss}
-        />
-      )}
+          <HUD
+            health={health}
+            score={score}
+            year={currentYear}
+            levelName={currentName}
+            antiGravityActive={agActive}
+            antiGravityAvailable={agAvailable}
+            antiGravityProgress={agProgress}
+            onGravityToggle={handleGravityToggle}
+          />
 
-      {gameState === 'quiz' && quizQuestion && (
-        <QuizModal
-          question={quizQuestion}
-          onAnswer={handleQuizAnswer}
-          onTimeout={handleQuizTimeout}
-        />
-      )}
+          {gameState === 'story' && (
+            <StoryCard text={storyText} year={storyYear} name={storyName} onDismiss={handleStoryDismiss} />
+          )}
 
-      {(gameState === 'gameover' || gameState === 'levelcomplete' || gameState === 'victory') && (
-        <GameOver
-          state={gameState}
-          score={score}
-          level={currentLevel}
-          onRetry={handleRetry}
-          onNextLevel={handleNextLevel}
-          onMenu={onBackToMenu}
-        />
-      )}
+          {gameState === 'quiz' && quizQuestion && (
+            <QuizModal question={quizQuestion} onAnswer={handleQuizAnswer} onTimeout={handleQuizTimeout} />
+          )}
 
-      {transitioning && (
-        <GlitchTransition
-          fromLevel={transitionFrom}
-          toLevel={transitionTo}
-          onComplete={handleTransitionComplete}
-        />
-      )}
+          {(gameState === 'gameover' || gameState === 'levelcomplete' || gameState === 'victory') && (
+            <GameOver state={gameState} score={score} level={currentLevel} onRetry={handleRetry} onNextLevel={handleNextLevel} onMenu={onBackToMenu} />
+          )}
 
-      <MobileControls onInput={handleMobileInput} />
+          {transitioning && (
+            <GlitchTransition fromLevel={transitionFrom} toLevel={transitionTo} onComplete={handleTransitionComplete} />
+          )}
+        </div>
+
+        {/* Footer narration */}
+        <div className="relative z-10 mt-3 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="comic-narration px-4 py-3 text-sm leading-relaxed text-foreground/80">
+            <span className="mb-1 block text-[10px] tracking-[0.35em] text-primary/70 font-orbitron">NARRATOR</span>
+            {missionCaption}
+          </div>
+          <div className="flex flex-wrap gap-2 text-[10px] font-orbitron tracking-[0.25em] text-muted-foreground">
+            <span className="comic-chip">DODGE</span>
+            <span className="comic-chip">QUIZ</span>
+            <span className="comic-chip">FLIP</span>
+          </div>
+        </div>
+
+        <MobileControls onInput={handleMobileInput} />
+      </div>
     </div>
   );
 }
