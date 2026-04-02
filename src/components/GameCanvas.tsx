@@ -103,13 +103,7 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
   }, []);
 
   const handleGravityToggle = useCallback(() => {
-    if (!engineRef.current) return;
-    const ag = engineRef.current.antiGravity;
-    if (ag.canActivate()) {
-      ag.activate();
-      engineRef.current.player.gravityFlipped = true;
-      engineRef.current.audio.playPowerUp();
-    }
+    engineRef.current?.toggleAntiGravity();
   }, []);
 
   return (
@@ -120,7 +114,6 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
         style={{ aspectRatio: `${CANVAS_WIDTH}/${CANVAS_HEIGHT}`, imageRendering: 'pixelated' }}
       />
 
-      {/* CRT Scanline overlay */}
       <CRTOverlay />
 
       <HUD
@@ -162,7 +155,6 @@ export default function GameCanvas({ level, onBackToMenu }: GameCanvasProps) {
         />
       )}
 
-      {/* Glitch transition between levels */}
       {transitioning && (
         <GlitchTransition
           fromLevel={transitionFrom}
