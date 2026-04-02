@@ -305,6 +305,11 @@ export class GameEngine {
           case 'antigravity':
             this.antiGravity.collect();
             this.audio.playPowerUp();
+            this.callbacks.onAntiGravityChange(
+              this.antiGravity.active,
+              this.antiGravity.available,
+              this.antiGravity.getCooldownProgress()
+            );
             break;
         }
       }
