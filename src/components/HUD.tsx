@@ -13,41 +13,66 @@ interface HUDProps {
 }
 
 export default function HUD({ health, score, year, levelName, antiGravityActive, antiGravityAvailable, antiGravityProgress, onGravityToggle }: HUDProps) {
-  const gravityState = antiGravityActive ? 'active' : antiGravityAvailable ? 'available' : 'cooldown';
+  const gravityState = antiGravityActive
+    ? 'active'
+    : antiGravityAvailable
+    ? 'available'
+    : antiGravityProgress > 0
+    ? 'cooldown'
+    : 'locked';
+
+  const gravityLabel: Record<string, string> = {
+    active: 'FLOAT ON',
+    available: 'ARMED',
+    cooldown: 'RECHARGING',
+    locked: 'COLLECT CHIP',
+  };
+
+  const gravityDisabled = gravityState === 'cooldown' || gravityState === 'locked';
 
   return (
-    <div className="absolute inset-x-0 top-0 pointer-events-none p-3 flex justify-between items-start font-orbitron z-[11]">
-      {/* Health */}
-      <div className="flex gap-1">
-        {Array.from({ length: MAX_HEALTH }).map((_, i) => (
-          <Heart
-            key={i}
-            className={`w-5 h-5 ${i < health ? 'text-destructive fill-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]' : 'text-muted-foreground'}`}
-          />
-        ))}
+    <div className="absolute inset-0 pointer-events-none font-orbitron z-[11]">
+      {/* Top bar */}
+      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
+        <div className="comic-panel px-3 py-2">
+          <div className="mb-1 text-[9px] tracking-[0.3em] text-muted-foreground">VITALS</div>
+          <div className="flex gap-1.5">
+            {Array.from({ length: MAX_HEALTH }).map((_, i) => (
+              <Heart
+                key={i}
+                className={`w-4 h-4 ${i < health ? 'text-destructive fill-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]' : 'text-muted-foreground'}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="comic-panel px-3 py-2 text-right">
+          <div className="text-[9px] tracking-[0.3em] text-muted-foreground">SCORE</div>
+          <div className="text-primary text-lg font-black drop-shadow-[0_0_8px_hsl(var(--primary))]">
+            {score.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-foreground/75 tracking-[0.16em]">
+            {year} · {levelName}
+          </div>
+        </div>
       </div>
 
-      {/* Score + Year */}
-      <div className="text-right">
-        <div className="text-primary text-lg font-bold drop-shadow-[0_0_8px_hsl(var(--primary))]">
-          {score.toLocaleString()}
-        </div>
-        <div className="text-xs text-primary/70 bg-background/60 px-2 py-0.5 rounded">
-          {year} — {levelName}
-        </div>
-      </div>
-
-      {/* Anti-gravity button — always visible */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-auto">
+      {/* Anti-gravity button — bottom center */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-auto">
         <button
+          type="button"
           onClick={onGravityToggle}
-          disabled={gravityState === 'cooldown'}
+          disabled={gravityDisabled}
+          aria-label="Toggle anti-gravity"
+          aria-pressed={antiGravityActive}
           className={`gravity-btn ${gravityState} w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${
             antiGravityActive
               ? 'border-secondary bg-secondary/20 scale-110'
               : antiGravityAvailable
               ? 'border-secondary/60 bg-secondary/10 hover:bg-secondary/20 hover:scale-105'
-              : 'border-muted-foreground/30 bg-muted/30 cursor-not-allowed'
+              : antiGravityProgress > 0
+              ? 'border-muted-foreground/30 bg-muted/30 cursor-not-allowed'
+              : 'border-border bg-card/80 cursor-not-allowed'
           }`}
         >
           <RotateCcw className={`w-5 h-5 ${
@@ -55,26 +80,28 @@ export default function HUD({ health, score, year, levelName, antiGravityActive,
               ? 'text-secondary animate-spin'
               : antiGravityAvailable
               ? 'text-secondary'
-              : 'text-muted-foreground'
+              : antiGravityProgress > 0
+              ? 'text-muted-foreground'
+              : 'text-primary/55'
           }`} style={antiGravityActive ? { animationDuration: '1s' } : undefined} />
         </button>
 
-        {/* Label */}
-        <span className={`text-[9px] font-bold tracking-wider ${
-          antiGravityActive ? 'text-secondary animate-neon-pulse' : antiGravityAvailable ? 'text-secondary/70' : 'text-muted-foreground/50'
-        }`}>
-          {antiGravityActive ? 'ON' : 'GRAVITY'}
-        </span>
+        <div className="comic-panel min-w-[140px] px-3 py-2 text-center">
+          <span className={`block text-[10px] font-black tracking-[0.32em] ${
+            antiGravityActive ? 'text-secondary animate-neon-pulse' : antiGravityAvailable ? 'text-secondary/80' : 'text-muted-foreground'
+          }`}>
+            {gravityLabel[gravityState]}
+          </span>
 
-        {/* Cooldown / Duration bar */}
-        {(antiGravityActive || antiGravityProgress > 0) && (
-          <div className="w-14 h-1 bg-muted rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-200 ${antiGravityActive ? 'bg-secondary' : 'bg-muted-foreground/40'}`}
-              style={{ width: `${antiGravityProgress * 100}%` }}
-            />
-          </div>
-        )}
+          {(antiGravityActive || antiGravityProgress > 0) && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full transition-all duration-200 ${antiGravityActive ? 'bg-secondary' : 'bg-muted-foreground/40'}`}
+                style={{ width: `${Math.max(0, Math.min(1, antiGravityProgress)) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
