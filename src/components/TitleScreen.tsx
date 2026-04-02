@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { getNarrator } from '@/game/engine/Narrator';
 import { Volume2, VolumeX } from 'lucide-react';
+import { Starburst, CornerFold, HalftonePatch, ActionLines, ZigzagDivider, SfxPop, ComicDots, TornEdge } from './ComicDecorations';
 
 type Screen = 'title' | 'howtoplay';
 
 const HOW_TO_PLAY_BEATS = [
-  { title: 'RUN THE PAGE', shortcut: '← → / A D', copy: 'Stay ahead of spikes, bugs, and wreckage from every decade.', icon: '🏃' },
-  { title: 'KICK UP', shortcut: 'SPACE / ↑', copy: 'Jump gaps cleanly. From Level 3 onward you get a double-jump.', icon: '⬆️' },
-  { title: 'BREAK GRAVITY', shortcut: 'G / HUD BTN', copy: 'You start with one charge. Purple chips reload it mid-run.', icon: '🔮' },
-  { title: 'ACE THE QUIZ', shortcut: 'POP QUIZ', copy: 'History bites back. Fast answers mean bonus score and shields.', icon: '🧠' },
+  { title: 'RUN THE PAGE', shortcut: '← → / A D', copy: 'Stay ahead of spikes, bugs, and wreckage from every decade.', icon: '🏃', sfx: 'DASH!' },
+  { title: 'KICK UP', shortcut: 'SPACE / ↑', copy: 'Jump gaps cleanly. From Level 3 onward you get a double-jump.', icon: '⬆️', sfx: 'BOING!' },
+  { title: 'BREAK GRAVITY', shortcut: 'G / HUD BTN', copy: 'You start with one charge. Purple chips reload it mid-run.', icon: '🔮', sfx: 'WHOMP!' },
+  { title: 'ACE THE QUIZ', shortcut: 'POP QUIZ', copy: 'History bites back. Fast answers mean bonus score and shields.', icon: '🧠', sfx: 'ZING!' },
 ];
 
 const SURVIVAL_NOTES = [
@@ -39,7 +40,6 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
     return () => clearInterval(interval);
   }, []);
 
-  // Narrate once on mount
   useEffect(() => {
     if (!hasNarrated.current && voiceEnabled) {
       const timer = setTimeout(() => {
@@ -58,11 +58,18 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
 
   if (screen === 'howtoplay') {
     return (
-      <div className="min-h-screen comic-stage flex items-center justify-center p-4">
-        {/* Voice toggle */}
+      <div className="min-h-screen comic-stage flex items-center justify-center p-4 overflow-hidden">
         <VoiceToggle enabled={voiceEnabled} onToggle={toggleVoice} />
 
-        <div className="relative z-10 max-w-5xl w-full comic-panel p-4 sm:p-6">
+        {/* Background decorations */}
+        <HalftonePatch className="top-10 left-10" />
+        <HalftonePatch className="bottom-20 right-16 w-[160px] h-[160px]" />
+        <ActionLines className="opacity-[0.03]" />
+
+        <div className="relative z-10 max-w-5xl w-full comic-panel p-4 sm:p-6 comic-corner-cut">
+          <CornerFold corner="top-right" />
+          <CornerFold corner="bottom-left" />
+
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="comic-caption inline-flex rounded-sm mb-2">FIELD GUIDE</div>
@@ -78,7 +85,10 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
             </button>
           </div>
 
-          <div className="comic-narration px-4 py-3 mb-6">
+          <ZigzagDivider className="mb-4" />
+
+          <div className="comic-narration px-4 py-3 mb-6 relative">
+            <SfxPop text="READ!" className="absolute -top-3 -right-2 text-sm" rotate={12} />
             <span className="block text-[10px] tracking-[0.35em] text-primary/70">NARRATOR&apos;S NOTE</span>
             <span className="text-sm leading-relaxed text-foreground/80">
               This is not a quiet museum walk — it is a sprint through eighty years of sparks, silicon, and bad decisions dodged at full speed.
@@ -86,8 +96,10 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {HOW_TO_PLAY_BEATS.map((beat) => (
-              <div key={beat.title} className="comic-panel p-4 group hover:-translate-y-0.5 transition-transform">
+            {HOW_TO_PLAY_BEATS.map((beat, i) => (
+              <div key={beat.title} className="comic-panel p-4 group hover:-translate-y-1 transition-transform relative comic-stripe-accent">
+                <CornerFold corner={i % 2 === 0 ? 'top-right' : 'top-left'} />
+                <SfxPop text={beat.sfx} className="absolute -top-2 -right-1 text-[10px]" rotate={-5 + i * 8} />
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{beat.icon}</span>
@@ -100,9 +112,11 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
             ))}
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <ZigzagDivider className="my-4" />
+
+          <div className="grid gap-3 lg:grid-cols-3">
             {SURVIVAL_NOTES.map((note, index) => (
-              <div key={note.tip} className="comic-panel p-4 hover:-translate-y-0.5 transition-transform">
+              <div key={note.tip} className="comic-panel p-4 hover:-translate-y-0.5 transition-transform relative">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="text-lg">{note.icon}</span>
                   <span className="font-orbitron text-[10px] tracking-[0.35em] text-muted-foreground">TIP 0{index + 1}</span>
@@ -117,13 +131,23 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
   }
 
   return (
-    <div className="min-h-screen comic-stage flex items-center justify-center p-4">
-      {/* Voice toggle */}
+    <div className="min-h-screen comic-stage flex items-center justify-center p-4 overflow-hidden">
       <VoiceToggle enabled={voiceEnabled} onToggle={toggleVoice} />
+
+      {/* Background decorations */}
+      <HalftonePatch className="top-8 right-20" />
+      <HalftonePatch className="bottom-16 left-12 w-[100px] h-[100px]" />
+      <ActionLines className="opacity-[0.02]" />
 
       <div className="relative z-10 grid w-full max-w-6xl gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         {/* Hero panel */}
-        <section className="comic-panel p-5 sm:p-8">
+        <section className="comic-panel p-5 sm:p-8 relative overflow-hidden">
+          <CornerFold corner="top-right" />
+          <CornerFold corner="bottom-left" />
+
+          {/* Starburst badge */}
+          <Starburst text="80th!" color="gold" size="lg" className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10" />
+
           <div className="comic-caption inline-flex rounded-sm mb-4">ISSUE #80 · SPECIAL EDITION</div>
 
           <div className="text-xs font-orbitron text-muted-foreground mb-4 tracking-[0.3em]">
@@ -139,11 +163,16 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
             CODE RUNNER
           </h1>
 
-          <div className="font-orbitron text-secondary text-sm sm:text-base mb-6 tracking-[0.35em] drop-shadow-[0_0_10px_hsl(var(--secondary))]">
+          <div className="font-orbitron text-secondary text-sm sm:text-base mb-2 tracking-[0.35em] drop-shadow-[0_0_10px_hsl(var(--secondary))]">
             1946—2026 · RUN THE TIMELINE
           </div>
 
-          <div className="comic-narration max-w-2xl px-4 py-3 mb-6">
+          <ComicDots count={8} className="mb-4" />
+
+          <ZigzagDivider className="mb-4" />
+
+          <div className="comic-narration max-w-2xl px-4 py-3 mb-6 relative">
+            <SfxPop text="POW!" className="absolute -top-4 -left-3 text-lg" rotate={-15} />
             <span className="block text-[10px] tracking-[0.35em] text-primary/70">NARRATOR</span>
             <span className="text-sm leading-relaxed text-foreground/80">
               One runner drops into the archive of computing history. Dodge decade-shattering hazards, ace pop quizzes, and flip gravity before the next breakthrough hits.
@@ -167,11 +196,16 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
             <span className="comic-chip">JUMP</span>
             <span className="comic-chip">FLIP</span>
           </div>
+
+          {/* Diagonal stripe accent in corner */}
+          <div className="absolute bottom-0 right-0 w-24 h-24 comic-stripe-accent pointer-events-none opacity-50" />
         </section>
 
         {/* Side dossier */}
         <aside className="grid gap-4">
-          <div className="comic-panel p-5">
+          <div className="comic-panel p-5 relative">
+            <CornerFold corner="top-right" />
+            <Starburst text="TIPS" color="secondary" size="sm" className="absolute -top-3 -left-3" />
             <div className="mb-4 font-orbitron text-[10px] tracking-[0.35em] text-primary/70">SURVIVAL DOSSIER</div>
             <div className="space-y-3">
               {HOW_TO_PLAY_BEATS.slice(0, 3).map((beat) => (
@@ -189,11 +223,13 @@ export default function TitleScreen({ onPlay, onLevelSelect }: TitleScreenProps)
             </div>
           </div>
 
-          <div className="comic-panel p-5">
+          <div className="comic-panel p-5 relative comic-stripe-accent">
+            <CornerFold corner="bottom-right" />
             <div className="comic-caption inline-flex rounded-sm mb-3">EDGY MODE</div>
             <p className="text-sm font-mono leading-relaxed text-foreground/80">
               Purple gravity chips reload your field after the opening charge. Shields erase one bad collision. Quizzes reward nerve. Hesitation gets stranded in the previous decade.
             </p>
+            <TornEdge side="bottom" />
           </div>
         </aside>
       </div>

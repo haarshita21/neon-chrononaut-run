@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getNarrator } from '@/game/engine/Narrator';
+import { CornerFold, Starburst, ZigzagDivider, ComicDots } from './ComicDecorations';
 
 interface StoryCardProps {
   text: string;
@@ -16,7 +17,6 @@ export default function StoryCard({ text, year, name, onDismiss }: StoryCardProp
   useEffect(() => {
     setDisplayText('');
     setDone(false);
-    // Voice narration for the era briefing
     narratorRef.current.speak(`${year}. ${name}. ${text}`);
 
     let i = 0;
@@ -36,17 +36,27 @@ export default function StoryCard({ text, year, name, onDismiss }: StoryCardProp
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur z-20">
-      <div className="max-w-lg w-full mx-4 comic-panel p-6 text-center animate-scale-in">
-        <div className="comic-caption inline-flex rounded-sm mb-4">ERA BRIEFING</div>
+      <div className="max-w-lg w-full mx-4 comic-panel p-6 text-center animate-scale-in relative comic-corner-cut">
+        <CornerFold corner="top-right" />
+        <CornerFold corner="bottom-left" />
+
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="comic-caption inline-flex rounded-sm">ERA BRIEFING</div>
+          <Starburst text="NEW" color="gold" size="sm" />
+        </div>
 
         <div className="font-orbitron text-5xl font-black text-primary mb-2 drop-shadow-[0_0_20px_hsl(var(--primary))]">
           {year}
         </div>
-        <div className="font-orbitron text-lg text-secondary mb-4 drop-shadow-[0_0_8px_hsl(var(--secondary))]">
+        <div className="font-orbitron text-lg text-secondary mb-2 drop-shadow-[0_0_8px_hsl(var(--secondary))]">
           {name}
         </div>
 
-        <div className="comic-narration px-4 py-3 mb-6 text-left">
+        <ComicDots count={5} className="justify-center mb-3" />
+        <ZigzagDivider className="mb-4" />
+
+        <div className="comic-narration px-4 py-3 mb-6 text-left relative">
+          <CornerFold corner="top-right" />
           <span className="block text-[10px] tracking-[0.35em] text-primary/70 mb-1">NARRATOR</span>
           <span className="text-sm leading-relaxed text-foreground/80 font-mono">
             {displayText}
@@ -60,7 +70,7 @@ export default function StoryCard({ text, year, name, onDismiss }: StoryCardProp
             narratorRef.current.stop();
             onDismiss();
           }}
-          className="comic-button font-orbitron text-sm px-8 py-3"
+          className="comic-button font-orbitron text-sm px-8 py-3 comic-button--primary"
         >
           {done ? '▶ DROP IN' : 'SKIP →'}
         </button>

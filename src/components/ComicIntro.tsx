@@ -6,6 +6,7 @@ import comicPanel4 from '@/assets/comic-panel-4.jpg';
 import { AudioManager } from '@/game/engine/AudioManager';
 import { getNarrator } from '@/game/engine/Narrator';
 import { Volume2, VolumeX } from 'lucide-react';
+import { Starburst, CornerFold, HalftonePatch, ZigzagDivider, SfxPop, ComicDots } from './ComicDecorations';
 
 interface ComicPanelData {
   image: string;
@@ -100,7 +101,6 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
         } else {
           audioRef.current?.playComicBlip(i);
         }
-        // Narrate each panel
         if (voiceEnabled) {
           narratorRef.current.queueSpeak(panel.voiceover);
         }
@@ -131,10 +131,16 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
 
   return (
     <div className="min-h-screen comic-stage flex flex-col items-center justify-center p-3 sm:p-6 relative overflow-hidden">
+      {/* Background decorations */}
+      <HalftonePatch className="top-6 left-8" />
+      <HalftonePatch className="bottom-12 right-10 w-[140px] h-[140px]" />
+
       {/* Masthead */}
-      <div className={`mb-4 text-center ${visiblePanels > 0 ? 'animate-fade-in' : 'opacity-0'}`}>
+      <div className={`mb-4 text-center relative ${visiblePanels > 0 ? 'animate-fade-in' : 'opacity-0'}`}>
+        <Starburst text="NEW!" color="destructive" size="sm" className="absolute -top-4 -right-8" />
         <div className="comic-caption inline-flex rounded-sm mb-2">ISSUE #80 · ORIGIN STORY</div>
         <div className="font-orbitron text-[10px] tracking-[0.4em] text-muted-foreground">IEEE COMPUTER SOCIETY PRESENTS</div>
+        <ComicDots count={6} className="justify-center mt-2" />
       </div>
 
       {/* Comic grid */}
@@ -150,6 +156,9 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
             <div className="comic-panel rounded overflow-hidden relative group" style={{
               aspectRatio: panel.span === 'wide' ? '2.2/1' : '1.15/1',
             }}>
+              {/* Corner folds */}
+              <CornerFold corner={i % 2 === 0 ? 'top-right' : 'top-left'} />
+
               {/* Page number watermark */}
               <div className="absolute top-2 right-3 font-orbitron text-[40px] sm:text-[56px] font-black text-foreground/[0.04] leading-none z-0 select-none pointer-events-none">
                 {panel.pageNum}
@@ -204,20 +213,11 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
 
               {/* SFX */}
               {panel.sfx && i < visiblePanels && (
-                <div
-                  className="absolute animate-comic-text font-orbitron font-black text-xl sm:text-3xl"
-                  style={{
-                    bottom: '14%',
-                    right: '6%',
-                    color: 'hsl(var(--neon-gold))',
-                    textShadow: '0 0 12px hsl(var(--neon-gold)), 3px 3px 0 hsl(var(--background))',
-                    animationDelay: '0.5s',
-                    transform: 'rotate(-8deg) scale(1.1)',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  {panel.sfx}
-                </div>
+                <SfxPop
+                  text={panel.sfx}
+                  className="absolute text-xl sm:text-3xl"
+                  rotate={-8}
+                />
               )}
 
               {/* Narration box */}
@@ -237,8 +237,10 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
         ))}
       </div>
 
+      <ZigzagDivider className="max-w-3xl w-full mt-3" />
+
       {/* Progress dots */}
-      <div className="mt-4 flex gap-2 items-center">
+      <div className="mt-3 flex gap-2 items-center">
         {PANELS.map((_, i) => (
           <div
             key={i}
@@ -251,10 +253,11 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
 
       {/* Action button */}
       {allVisible && (
-        <div className="mt-5 animate-comic-burst">
+        <div className="mt-5 animate-comic-burst relative">
+          <Starburst text="GO!" color="primary" size="sm" className="absolute -top-6 -right-8" />
           <button
             onClick={handleBegin}
-            className="comic-button font-orbitron text-sm px-12 py-3.5 font-bold"
+            className="comic-button font-orbitron text-sm px-12 py-3.5 font-bold comic-button--primary"
           >
             ▶ BEGIN MISSION
           </button>
