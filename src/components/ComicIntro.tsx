@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import comicPanel1 from '@/assets/comic-panel-1.jpg';
 import comicPanel2 from '@/assets/comic-panel-2.jpg';
 import comicPanel3 from '@/assets/comic-panel-3.jpg';
 import comicPanel4 from '@/assets/comic-panel-4.jpg';
+import { AudioManager } from '@/game/engine/AudioManager';
 
 interface ComicPanelData {
   image: string;
@@ -13,6 +14,7 @@ interface ComicPanelData {
   sfx?: string;
   delay: number;
   span?: 'wide' | 'tall' | 'normal';
+  isRunner?: boolean;
 }
 
 const PANELS: ComicPanelData[] = [
@@ -47,6 +49,7 @@ const PANELS: ComicPanelData[] = [
     narration: 'One runner. Eight eras. The mission begins NOW.',
     delay: 2400,
     span: 'wide',
+    isRunner: true,
   },
 ];
 
@@ -57,17 +60,36 @@ interface ComicIntroProps {
 export default function ComicIntro({ onComplete }: ComicIntroProps) {
   const [visiblePanels, setVisiblePanels] = useState(0);
   const [showSkip, setShowSkip] = useState(false);
+  const audioRef = useRef<AudioManager | null>(null);
+
+  useEffect(() => {
+    audioRef.current = new AudioManager();
+    return () => { audioRef.current?.destroy(); };
+  }, []);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     PANELS.forEach((panel, i) => {
-      timers.push(setTimeout(() => setVisiblePanels(i + 1), panel.delay));
+      timers.push(setTimeout(() => {
+        setVisiblePanels(i + 1);
+        // Play SFX when panel appears
+        if (panel.isRunner) {
+          audioRef.current?.playComicWhoosh();
+        } else {
+          audioRef.current?.playComicBlip(i);
+        }
+      }, panel.delay));
     });
     timers.push(setTimeout(() => setShowSkip(true), 400));
     return () => timers.forEach(clearTimeout);
   }, []);
 
   const allVisible = visiblePanels >= PANELS.length;
+
+  const handleBegin = () => {
+    audioRef.current?.playComicBegin();
+    setTimeout(onComplete, 400);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-3 sm:p-6 relative overflow-hidden">
@@ -174,7 +196,7 @@ export default function ComicIntro({ onComplete }: ComicIntroProps) {
       {allVisible && (
         <div className="mt-5 animate-comic-burst">
           <button
-            onClick={onComplete}
+            onClick={handleBegin}
             className="font-orbitron text-sm px-12 py-3.5 bg-primary text-primary-foreground rounded-sm font-bold hover:scale-105 transition-transform relative"
             style={{
               boxShadow: '4px 4px 0 hsl(var(--foreground) / 0.3), 0 0 25px hsl(var(--primary) / 0.4)',
@@ -228,7 +250,6 @@ function SpeechBubble({ text, position, speaker, delay = 0 }: {
           </span>
         )}
         {text}
-        {/* Tail */}
         <div
           className={`absolute ${tailSide} w-0 h-0 ${
             tailDir === 'bottom'
@@ -261,7 +282,6 @@ function ThoughtBubble({ text, position, delay = 0 }: {
         style={{ border: '2px dashed hsl(var(--primary))' }}
       >
         {text}
-        {/* Thought dots */}
         <div className="absolute -bottom-3 left-6 w-2 h-2 rounded-full bg-foreground/90" />
         <div className="absolute -bottom-5 left-4 w-1.5 h-1.5 rounded-full bg-foreground/70" />
       </div>
