@@ -465,12 +465,3 @@
     animation: none !important;
   }
 }
-  .animate-comic-panel,
-  .animate-comic-burst,
-  .animate-comic-text,
-  .animate-glitch-out,
-  .animate-glitch-in,
-  .animate-crt-flicker {
-    animation: none !important;
-  }
-}
